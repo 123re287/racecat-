@@ -154,16 +154,29 @@
             正在加载今日任务...
         </div>
 
-        <button class="button" onclick="startTasks()">
-            开始今天的任务
-        </button>
 
+        
+    <div id="timer-box" style="margin-top:20px;font-size:20px;">
+    计时：00:00
+</div>
+
+<button class="button" onclick="startTimer()">
+    开始计时
+</button>
+
+<button class="button" onclick="stopTimer()">
+    停止计时
+</button>
     </div>
 
 </div>
 
 <script>
 
+let currentTaskId = null;
+
+let timer = null;
+let seconds = 0;
 async function loadData() {
 
     try {
@@ -297,6 +310,74 @@ function stopTask(taskId) {
         "🐱 任务暂停！\n" +
         "本次记录：" + elapsedMinutes + " 分钟"
     );
+let timer = null;
+let seconds = 0;
+
+
+function startTimer(){
+
+    if(timer){
+        return;
+    }
+
+    timer = setInterval(()=>{
+
+        seconds++;
+
+        let min = Math.floor(seconds/60);
+        let sec = seconds%60;
+
+        document.getElementById("timer-box").innerText =
+            "计时：" +
+            String(min).padStart(2,"0")
+            + ":" +
+            String(sec).padStart(2,"0");
+
+    },1000);
+
+}
+
+
+async function stopTimer(){
+
+    clearInterval(timer);
+    timer=null;
+
+    let minutes=Math.floor(seconds/60);
+
+    if(minutes <= 0){
+        alert("🐱 时间太短啦，还没有记录");
+        return;
+    }
+
+
+    // 暂时记录任务4
+    let taskId = 4;
+
+
+    await fetch(
+        `http://127.0.0.1:8000/tasks/${taskId}/progress`,
+        {
+            method:"PUT",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                minutes:minutes
+            })
+        }
+    );
+
+
+    alert(
+        "🐱 已记录 "+minutes+" 分钟"
+    );
+
+
+    loadData();
+
+}
+
 
     loadData();
 });
@@ -350,6 +431,44 @@ async function finishTask(taskId) {
     alert("🐱 任务完成！");
     loadData();
 }
+function startTimer(){
+
+    if(timer){
+        return;
+    }
+
+    timer = setInterval(()=>{
+
+        seconds++;
+
+        let min = Math.floor(seconds/60);
+        let sec = seconds%60;
+
+        document.getElementById("timer-box").innerText =
+            "计时：" +
+            String(min).padStart(2,"0")
+            + ":" +
+            String(sec).padStart(2,"0");
+
+    },1000);
+
+}
+
+
+function stopTimer(){
+
+    clearInterval(timer);
+    timer=null;
+
+    let minutes=Math.floor(seconds/60);
+
+    alert(
+        "🐱 本次完成 "+minutes+" 分钟"
+    );
+
+}
+
+
 loadData();
 
 </script>
