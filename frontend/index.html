@@ -130,7 +130,26 @@
         <div class="time" id="daily-time">
             -- 分钟
         </div>
+<div id="progress-text">
+    已完成：-- 分钟
+</div>
 
+<div style="
+    width:100%;
+    height:12px;
+    background:#eee;
+    border-radius:10px;
+    margin-top:10px;
+">
+    <div id="progress-bar"
+        style="
+        width:0%;
+        height:12px;
+        background:#222;
+        border-radius:10px;
+        ">
+    </div>
+</div>
         <div id="tasks">
             正在加载今日任务...
         </div>
@@ -163,7 +182,23 @@ async function loadData() {
 
         document.getElementById("daily-time").innerText =
             recommendData.daily_target_minutes + " 分钟";
+        const completed =
+    recommendData.completed_minutes;
 
+const target =
+    recommendData.daily_target_minutes;
+
+document.getElementById("progress-text").innerText =
+    "已完成：" + completed + " 分钟";
+
+const percent =
+    Math.min(
+        completed / target * 100,
+        100
+    );
+
+document.getElementById("progress-bar").style.width =
+    percent + "%";
         const tasksContainer =
             document.getElementById("tasks");
 

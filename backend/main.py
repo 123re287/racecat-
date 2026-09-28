@@ -174,9 +174,13 @@ def recommend_tasks(
         result,
         daily_target_minutes
     )
-
+    completed_minutes = sum(
+        task.spent_minutes
+        for task in tasks
+    )
     return {
         "daily_target_minutes": daily_target_minutes,
+        "completed_minutes": completed_minutes,
         "today_tasks": today_tasks,
         "all_tasks": result
     }
