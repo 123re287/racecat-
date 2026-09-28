@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>赛程猫</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f6f8;
+            color: #222;
+        }
+
+        .container {
+            width: 900px;
+            max-width: 90%;
+            margin: 50px auto;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .subtitle {
+            color: #777;
+            margin-top: 8px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .project-name {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .deadline {
+            color: #777;
+            margin-top: 8px;
+        }
+
+        .today-title {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .time {
+            font-size: 40px;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        .task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .task:last-child {
+            border-bottom: none;
+        }
+
+        .task-title {
+            font-size: 17px;
+        }
+
+        .task-time {
+            color: #666;
+        }
+
+        .button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            background: #222;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            opacity: 0.85;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <div class="logo">🐱 赛程猫</div>
+        <div class="subtitle">今天该做什么？让赛程猫告诉你。</div>
+    </div>
+
+    <div class="card">
+        <div class="project-name" id="project-name">
+            正在加载...
+        </div>
+
+        <div class="deadline" id="deadline">
+            正在计算...
+        </div>
+    </div>
+
+    <div class="card">
+
+        <div class="today-title">🔥 今天建议投入</div>
+
+        <div class="time" id="daily-time">
+            -- 分钟
+        </div>
+
+        <div id="tasks">
+            正在加载今日任务...
+        </div>
+
+        <button class="button" onclick="startTasks()">
+            开始今天的任务
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+async function loadData() {
+
+    try {
+
+        // 获取赛程信息
+       
+        // 获取今日推荐
+        const recommendResponse = await fetch(
+            "http://127.0.0.1:8000/projects/2/recommend"
+        );
+
+        const recommendData = await recommendResponse.json();
+
+        document.getElementById("project-name").innerText =
+            "数学建模竞赛";
+
+        document.getElementById("daily-time").innerText =
+            recommendData.daily_target_minutes + " 分钟";
+
+        const tasksContainer =
+            document.getElementById("tasks");
+
+        tasksContainer.innerHTML = "";
+
+        recommendData.today_tasks.forEach(task => {
+
+            const taskElement = document.createElement("div");
+
+            taskElement.className = "task";
+
+             taskElement.innerHTML = `
+    <div class="task-title">${task.title}</div>
+    <div class="task-time" id="timer-${task.task_id}">
+    ${task.allocated_minutes} 分钟
+</div>
+    <button onclick="startTask(${task.task_id})">
+    开始任务
+</button>
+
+<button onclick="stopTask(${task.task_id})">
+    停止任务
+</button>
+
+`;
+           tasksContainer.appendChild(taskElement);
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("tasks").innerText =
+            "加载失败，请确认后端正在运行。";
+
+    }
+
+}
+
+
+
+let taskTimers = {};
+let taskStartTimes = {};
+
+function startTask(taskId) {
+    if (taskTimers[taskId]) {
+        return;
+    }
+
+
+    taskStartTimes[taskId] = Date.now();
+
+    taskTimers[taskId] = setInterval(() => {
+        const elapsedSeconds = Math.floor(
+            (Date.now() - taskStartTimes[taskId]) / 1000
+        );
+
+        console.log(
+            "任务 " + taskId +
+            " 已进行 " + elapsedSeconds + " 秒"
+        );
+    }, 1000);
+
+    alert("🐱 开始任务！");
+}
+function stopTask(taskId) {
+    if (!taskTimers[taskId]) {
+        return;
+    }
+
+    clearInterval(taskTimers[taskId]);
+
+    const elapsedMinutes = Math.floor(
+        (Date.now() - taskStartTimes[taskId]) / 60000
+    );
+
+    delete taskTimers[taskId];
+    delete taskStartTimes[taskId];
+
+    fetch(
+    `http://127.0.0.1:8000/tasks/${taskId}/progress`,
+    {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            minutes: elapsedMinutes
+        })
+    }
+)
+.then(response => response.json())
+.then(data => {
+    alert(
+        "🐱 任务暂停！\n" +
+        "本次记录：" + elapsedMinutes + " 分钟"
+    );
+
+    loadData();
+});
+}
+
+
+async function completeTask(taskId) {
+    const minutes = prompt("🐱 今天完成了多少分钟？");
+
+    if (!minutes) {
+        return;
+    }
+
+    await fetch(
+        `http://127.0.0.1:8000/tasks/${taskId}/progress`,
+        {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                minutes: Number(minutes)
+            })
+        }
+    );
+
+    alert("🐱 已记录 " + minutes + " 分钟！");
+    loadData();
+}
+async function finishTask(taskId) {
+    const response = await fetch(
+        `http://127.0.0.1:8000/tasks/${taskId}/complete`,
+        {
+            method: "PUT"
+        }
+    );
+
+    const data = await response.json();
+
+    if (data.error) {
+        alert(
+            "🐱 " + data.error +
+            "\n已完成：" + data.spent_minutes + " 分钟" +
+            "\n还需要：" +
+            (data.estimated_minutes - data.spent_minutes) +
+            " 分钟"
+        );
+        return;
+    }
+
+    alert("🐱 任务完成！");
+    loadData();
+}
+loadData();
+
+</script>
+
+</body>
+</html>
